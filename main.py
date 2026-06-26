@@ -7,6 +7,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Date, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, date
+from modelsdb import Base, TareaDB
 from taskmanager import Tarea
 
 logging.basicConfig(
@@ -30,16 +31,6 @@ class CrearTarea(BaseModel):
     creada: date = Field(...,description="Fecha de la creacion de la tarea")
     realizada: Optional[bool] = Field(default=False,description="Estado de la tarea") # Lo inicializo a falso para luego poder cambiarlo en BD con PUT una vez completada la tarea
     caducada: Optional[bool] = Field(default=False,description="Estado si la tarea a caducado o no") # Lo inicializo a falso para luego comprobarlo con GET
-
-class TareaDB(Base):
-    __tablename__ = "tareas"
-
-    id = Column(Integer,primary_key=True, index=True)
-    titulo = Column(String, index=True)
-    contenido = Column(String, index=True)
-    fecha = Column(Date,index=True)
-    realizada = Column(Boolean, index=True)
-    caducada = Column(Boolean,index=True)
 
 # Creacion API
 
@@ -71,6 +62,6 @@ def completar_tarea(tarea:CrearTarea,id:int):
 def crear_tarea(tarea:CrearTarea):
     
     logging.info(f"Tarea procesada correctamente: {tarea}")
-    tarea_db = TareaDB(id = tarea.id,titulo=tarea.titulo,contenido=tarea.contenido,creada=tarea.creada,realizada=tarea.realizada,caducada=tarea.caducada)
+    tarea_db = Tarea(titulo=tarea.titulo,contenido=tarea.contenido,creada=tarea.creada,realizada=tarea.realizada,caducada=tarea.caducada)
     Tarea.crear_tarea(tarea_db)
     
