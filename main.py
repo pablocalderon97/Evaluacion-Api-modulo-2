@@ -52,15 +52,15 @@ app = FastAPI(
 # EndPoints
 
 @app.get("/tasks/{id}",response_model=TareaDB)
-def listar_tareas(tarea:CrearTarea,id:int):
+def listar_tareas(id:int):
 
-    Tarea.obtener_tarea_id(tarea,id)
+    Tarea.obtener_tarea_id(id)
     
-@app.get("/tasks/caducadas")
-def tareas_caducadas(tarea:CrearTarea):
+@app.get("/tasks/caducadas", response_model=TareaDB)
+def tareas_caducadas(fecha:date):
 
-    fecha_actual = date.today()
-    Tarea.comprobar_tareas_caducadas(tarea,fecha_actual)
+    fecha = date.today()
+    Tarea.comprobar_tareas_caducadas(fecha)
 
 @app.put("/tasks/{id}/completada",response_model=TareaDB)
 def completar_tarea(tarea:CrearTarea,id:int):

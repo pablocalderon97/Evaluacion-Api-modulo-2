@@ -45,10 +45,10 @@ class Tarea:
             "realizado": tarea_db.realizada
         }        
 
-    def obtener_tarea_id(self,id:int):
+    def obtener_tarea_id(id:int):
 
         db = SessionLocal()
-        tarea = db.query(self).filter(self.id == id).first()
+        tarea = db.query(TareaDB).filter(TareaDB.id == id).first()
         if not tarea:
             db.close()
             raise HTTPException(status_code=404, detail="Tarea no localizada")
@@ -57,51 +57,55 @@ class Tarea:
 
         return{
             
-            "titulo": self.titulo,
-            "Contenido": self.contenido,
-            "Creada": self.creada
+            "titulo": tarea.titulo,
+            "Contenido": tarea.contenido,
+            "Creada": tarea.creada
         }
     
-    def tarea_realizada(self,id:int):
+    def tarea_realizada(id:int):
 
         db = SessionLocal()
-        tarea = db.query(self).filter(self.id == id).first()
+        tarea = db.query(TareaDB).filter(TareaDB == id).first()
         if not tarea:
             db.close()
             raise HTTPException(status_code=404, detail="Tarea no localizada")
         
-        elif db.query(self.realizada) == True:
+        elif db.query(tarea.realizada) == True:
             db.close
             raise HTTPException(status_code=400, detail="Tarea ya completada con anterioridad")
 
-        db.query(self.realizada) == True
+        db.query(tarea.realizada) == True
 
         return{
             
-            "titulo": self.titulo,
-            "Contenido": self.contenido,
-            "Creada": self.creada,
-            "Realizada": self.realizada
+            "titulo": tarea.titulo,
+            "Contenido": tarea.contenido,
+            "Creada": tarea.creada,
+            "Realizada": tarea.realizada
         }
     
-    def comprobar_tareas_caducadas(self,fecha_actual:date):
+    def comprobar_tareas_caducadas(fecha_actual:date):
 
         db = SessionLocal()
-        tarea = db.query(self).filter(self.creada < fecha_actual).all()
+        tarea = db.query(TareaDB).filter(TareaDB.creada < fecha_actual).all()
         if not tarea:
             db.close()
             raise HTTPException(status_code=404, detail="No hay tareas caducadas")
         
-        db.query(self.caducada) == True
+        db.query(tarea.caducada) == True
+        tareas_realizadas = db.query(TareaDB).filter(TareaDB.realizada == True).all()
+        db.close()
 
-        return{
-            
-            "titulo": self.titulo,
-            "Contenido": self.contenido,
-            "Creada": self.creada,
-            "Caducada": self.caducada
-        }
-
+        return [
+         {
+        "titulo": t.titulo,
+        "contenido": t.contenido,
+        "creada": t.creada,
+        "caducada": t.caducada
+         }
+        
+        for t in tareas_realizadas
+]
 
 
 
