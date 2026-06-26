@@ -1,11 +1,13 @@
 import logging
-from fastapi import FastAPI, HTTPException, Request
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator,model_validator
-from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy import Column, Integer, String, Boolean, Date, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, date
+from taskmanager import Tarea
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,44 +15,62 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class Tarea(BaseModel):
+# Setup DB
+
+DATABASE_URL = "sqlite:///./tareas.db"
+
+engine = create_engine(DATABASE_URL,connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+Base = declarative_base()
+
+class CrearTarea(BaseModel):
+    id: Optional[int] = None
     titulo: str = Field(..., min_length=5, description="Titulo de la tarea a realizar (minimo 5 caracteres)")
     contenido: str = Field(..., description="Contenido de la tarea a realizar")
-    creada: datetime.now = Field(...,ge=0,description="Hora de la creacion de la tarea")
-    vencimiento: int = Field(..., ge=0, description="Hora a la que caduca la tarea a realizar")
-    realizada: bool = Field(False,description="Estado de la tarea") # Lo inicializo a falso siempre para luego poder cambiarlo en BD con PUT una vez completada la tarea
-    caducada: bool = Field(False,description="Estado si la tarea a caducado o no")
+    creada: date = Field(...,description="Fecha de la creacion de la tarea")
+    realizada: Optional[bool] = Field(default=False,description="Estado de la tarea") # Lo inicializo a falso para luego poder cambiarlo en BD con PUT una vez completada la tarea
+    caducada: Optional[bool] = Field(default=False,description="Estado si la tarea a caducado o no") # Lo inicializo a falso para luego comprobarlo con GET
 
-    
+class TareaDB(Base):
+    __tablename__ = "tareas"
+
+    id = Column(Integer,primary_key=True, index=True)
+    titulo = Column(String, index=True)
+    contenido = Column(String, index=True)
+    fecha = Column(Date,index=True)
+    realizada = Column(Boolean, index=True)
+    caducada = Column(Boolean,index=True)
+
+# Creacion API
+
 app = FastAPI(
-    title="Evaluacion modulo programacion avanzada, api con tareas a realizar"
-    description="API de ejemplo con base de datos SQLite."
+    title="Evaluacion modulo programacion avanzada, api con tareas a realizar",
+    description="API de ejemplo con base de datos SQLite.",
     version="1.0.0"
 )
 
-@app.post("/task/")
-def crear_tarea(tarea:Tarea):
+# EndPoints
+
+@app.get("/tasks/{id}",response_model=TareaDB)
+def listar_tareas(tarea:CrearTarea,id:int):
+
+    Tarea.obtener_tarea_id(tarea,id)
+    
+@app.get("/tasks/caducadas")
+def tareas_caducadas(tarea:CrearTarea):
+
+    fecha_actual = date.today()
+    Tarea.comprobar_tareas_caducadas(tarea,fecha_actual)
+
+@app.put("/tasks/{id}/completada",response_model=TareaDB)
+def completar_tarea(tarea:CrearTarea,id:int):
+
+    Tarea.tarea_realizada(tarea,id)
+
+@app.post("/tasks/",response_model=TareaDB,status_code=status.HTTP_201_CREATED)
+def crear_tarea(tarea:CrearTarea):
+    
     logging.info(f"Tarea procesada correctamente: {tarea}")
-
-    db = SessionLocal()
+    tarea_db = TareaDB(id = tarea.id,titulo=tarea.titulo,contenido=tarea.contenido,creada=tarea.creada,realizada=tarea.realizada,caducada=tarea.caducada)
+    Tarea.crear_tarea(tarea_db)
     
-    tarea_bd = Tarea(titulo=tarea.titulo,contenido=tarea.contenido,creada=tarea.creada,vencimiento=tarea.vencimiento,realizada=tarea.realizada,caducada=tarea.caducada)
-    db.add(tarea_bd)
-    db.commit()
-    db.refresh(tarea_bd)
-    db.close
-    logging.info(f"Tarea guardada correctamente en DB: {tarea_bd.titulo}")
-
-    return{
-        "msg": "tarea registrada correctamente",
-        "tarea":{
-            "titulo": tarea_bd.titulo,
-            "contenido": tarea_bd.contenido,
-            "creada": tarea_bd.creada,
-            "vencimiento": tarea_bd.vencimiento,
-            "realizado": tarea_bd.realizada
-            a:a
-
-        }
-    
-    }
