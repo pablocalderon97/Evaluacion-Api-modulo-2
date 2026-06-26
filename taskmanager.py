@@ -41,7 +41,7 @@ class Tarea:
         db.refresh(tarea_db)
         logging.info(f"Tarea guardada: {tarea_db.titulo}")
         db.close()
-        
+
         return tarea_db
         
 
@@ -92,7 +92,10 @@ class Tarea:
             db.close()
             raise HTTPException(status_code=404, detail="No hay tareas caducadas")
         
-        db.query(tarea.caducada) == True
+        for t in tarea:
+            t.realizadarealizada = True
+
+        db.commit()    
         tareas_realizadas = db.query(TareaDB).filter(TareaDB.realizada == True).all()
         db.close()
 
