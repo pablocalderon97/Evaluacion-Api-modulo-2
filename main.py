@@ -3,11 +3,8 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator,model_validator
-from sqlalchemy import Column, Integer, String, Boolean, Date, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime, date
-from modelsdb import Base, TareaDB, CrearTarea , engine
+from modelsdb import CrearTarea
 from taskmanager import Tarea
 
 logging.basicConfig(
@@ -26,9 +23,16 @@ app = FastAPI(
 
 # EndPoints
 
-@app.post("/tasks/")
+@app.post("/tasks/",status_code=201)
 def crear_tarea(datos: CrearTarea):
-    return Tarea.crear_tarea(datos.titulo, datos.contenido, datos.creada, datos.realizada, datos.caducada)
+
+    if datos.creada > date.today():
+        raise HTTPException(status_code=400, detail="La fecha de creación no puede ser futura")
+
+    if datos.deadline and datos.deadline < datos.creada:
+        raise HTTPException(status_code=400, detail="El deadline no puede ser anterior a la fecha de creación de la tarea")
+    
+    return Tarea.crear_tarea(datos.titulo, datos.contenido, datos.creada, datos.deadline, datos.realizada, datos.caducada)
 
 @app.get("/tasks/all")
 def listar_tareas():

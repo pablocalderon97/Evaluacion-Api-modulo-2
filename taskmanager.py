@@ -1,9 +1,6 @@
 
 import logging
 from datetime import datetime, date
-from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from fastapi import FastAPI, HTTPException
 from modelsdb import TareaDB
 
@@ -14,13 +11,14 @@ class Tarea:
     _contador_id = 0
 
 
-    def __init__(self, titulo: str, contenido: str, creada: date, realizada: bool = False, caducada: bool = False):
+    def __init__(self, titulo: str, contenido: str, creada: date, deadline: date, realizada: bool = False, caducada: bool = False):
 
         Tarea._contador_id += 1
         self.__id = Tarea._contador_id
         self.__titulo = titulo
         self.__contenido = contenido
         self.__creada = creada
+        self.__deadline = deadline
         self.__realizada = realizada
         self.__caducada = caducada
 
@@ -33,6 +31,7 @@ class Tarea:
             "titulo": self.__titulo,
             "contenido": self.__contenido,
             "creada": self.__creada,
+            "deadline": self.__deadline,
             "realizada": self.__realizada,
             "caducada": self.__caducada
          }
@@ -56,7 +55,13 @@ class Tarea:
         return self.__creada
     
     def set_creada(self, valor: date): 
-        self.__creada = valor    
+        self.__creada = valor
+    
+    def get_deadline(self):
+        return self.__deadline
+    
+    def set_deadline(self, valor: date): 
+        self.__deadline = valor        
     
     def get_realizada(self): 
         return self.__realizada
@@ -71,9 +76,9 @@ class Tarea:
         self.__caducada = valor
 
     @classmethod
-    def crear_tarea(cls, titulo:str,contenido:int,creada:date,realizada:bool = False, caducada:bool = False): 
+    def crear_tarea(cls, titulo:str,contenido:str,creada:date,deadline:date,realizada:bool = False, caducada:bool = False): 
 
-        tarea = cls(titulo,contenido,creada,realizada,caducada)
+        tarea = cls(titulo,contenido,creada,deadline,realizada,caducada)
         return tarea.valores_tareas()
 
     @classmethod
@@ -116,7 +121,7 @@ class Tarea:
 
         for t in cls._dict_tareas.values():
                
-            if t.get_creada() < fecha_actual:
+            if t.get_deadline() and t.get_deadline() < fecha_actual and not t.get_caducada():
 
                 t.set_caducada(True)  
                 caducadas.append(t)    
@@ -126,10 +131,6 @@ class Tarea:
 
         return [t.valores_tareas() for t in caducadas] 
         
-
-    
-
-
     
 
 

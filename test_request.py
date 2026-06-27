@@ -1,11 +1,18 @@
 import requests
 from datetime import datetime, date
 
-url = "https://127.0.0.1:8000/tasks/"
+url = "http://127.0.0.1:8000/tasks/"
 
-def exec_post_request(user_data, url, expected_code):
+datos_tarea = {
+    "titulo": "Compra Supermercado",
+    "contenido": "Patatas,fruta,filetes,huevos",
+    "deadline":date(2025,3,2),
+    "creada": date(2026,3,1).isoformat()
+}
 
-    response = requests.post(url, json=user_data, timeout=5)
+def exec_post_request(tarea_data, url, expected_code):
+
+    response = requests.post(url, json=tarea_data, timeout=5)
 
     print(f"Código de respuesta: {response.status_code}")
     print(f"Respuesta: {response.json()}")
@@ -18,10 +25,30 @@ def exec_post_request(user_data, url, expected_code):
     else:
         print("Internal Server Error")
 
-datos_tarea = {
-    "titulo": "Compra Supermercado",
-    "Contenido": "Patatas,fruta,filetes,huevos",
-    "Creada": date(2026,3,1).isoformat()
-}
+def tarea_incorrecta():
+
+    datos_tarea ={
+
+        "titulo": "aaa", # Error pocos caracteres
+        "contenido": "bbb",
+        "deadline":date(2025,3,2),
+        "creada": date(2026,3,1).isoformat()
+    }
+
+    response = requests.post(url, json=datos_tarea, timeout=5)
+    print(f"Código: {response.status_code}")
+    print(f"Respuesta: {response.json()}")
+    assert response.status_code == 422, f"Esperado 422, obtenido {response.status_code}"
+
+def id_incorrecta():
+
+    response = requests.get(f"{url}/9999", timeout=5)
+    print(f"Código: {response.status_code}")
+    print(f"Respuesta: {response.json()}")
+    assert response.status_code == 404, f"Esperado 404, obtenido {response.status_code}"
+
+
 
 exec_post_request(datos_tarea,url,200)
+tarea_incorrecta()
+id_incorrecta()
