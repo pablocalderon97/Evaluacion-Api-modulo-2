@@ -40,10 +40,17 @@ def listar_tareas():
 
 @app.get("/tasks/{id}")
 def obtener_tarea(id: int):
+
+    if id <= 0:
+        raise HTTPException(status_code=400, detail="El id debe ser un número positivo")
     return Tarea.obtener_por_id(id)
 
 @app.put("/tasks/{id}/realizada")
 def marcar_realizada(id: int):
+
+    if id <= 0:
+        raise HTTPException(status_code=400, detail="El id debe ser un número positivo")
+    
     return Tarea.tarea_realizada(id)
 
 @app.get("/tasks/caducadas/")

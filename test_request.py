@@ -47,8 +47,21 @@ def id_incorrecta():
     print(f"Respuesta: {response.json()}")
     assert response.status_code == 404, f"Esperado 404, obtenido {response.status_code}"
 
+def tarea_fecha_incorrecta():
+
+    datos_tarea = {
+        
+        "titulo": "Tarea futura",
+        "contenido": "bbb",
+        "creada": date(2030, 1, 1).isoformat()
+    }
+    response = requests.post(f"{url}/tasks/", json=datos_tarea, timeout=5)
+    print(f"Código: {response.status_code}")
+    print(f"Respuesta: {response.json()}")
+    assert response.status_code == 400, f"Esperado 400, obtenido {response.status_code}"   
 
 
 exec_post_request(datos_tarea,url,200)
 tarea_incorrecta()
 id_incorrecta()
+tarea_fecha_incorrecta()

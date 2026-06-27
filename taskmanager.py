@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, date
 from fastapi import FastAPI, HTTPException
-from modelsdb import TareaDB
+from modelsdb import CrearTarea
 
 class Tarea:
 
