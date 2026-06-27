@@ -7,112 +7,127 @@ from sqlalchemy.orm import sessionmaker
 from fastapi import FastAPI, HTTPException
 from modelsdb import TareaDB
 
-
-DATABASE_URL = "sqlite:///./tareas.db"
-
-engine = create_engine(DATABASE_URL,connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-Base = declarative_base()
-
 class Tarea:
+
+    
+    _dict_tareas = {}
+    _contador_id = 0
+
 
     def __init__(self, titulo: str, contenido: str, creada: date, realizada: bool = False, caducada: bool = False):
 
-        self.titulo = titulo
-        self.contenido = contenido
-        self.creada = creada
-        self.realizada = realizada
-        self.caducada = caducada
+        Tarea._contador_id += 1
+        self.__id = Tarea._contador_id
+        self.__titulo = titulo
+        self.__contenido = contenido
+        self.__creada = creada
+        self.__realizada = realizada
+        self.__caducada = caducada
 
-    def crear_tarea(self):     
+        Tarea._dict_tareas[self.__id] = self
 
-        db = SessionLocal()
-
-        tarea_db = TareaDB(
-            titulo = self.titulo,
-            contenido = self.contenido,
-            creada = self.creada,
-            realizada = self.realizada,
-            caducada = self.caducada
-         )
-        
-        db.add(tarea_db)
-        db.commit()
-        db.refresh(tarea_db)
-        logging.info(f"Tarea guardada: {tarea_db.titulo}")
-        db.close()
-
-        return tarea_db
-        
-
-    def obtener_tarea_id(id:int):
-
-        db = SessionLocal()
-        tarea = db.query(TareaDB).filter(TareaDB.id == id).first()
-        if not tarea:
-            db.close()
-            raise HTTPException(status_code=404, detail="Tarea no localizada")
-        
-        db.close()
-
-        return{
+    def valores_tareas(self):
+          return{
             
-            "titulo": tarea.titulo,
-            "Contenido": tarea.contenido,
-            "Creada": tarea.creada
-        }
-    
-    def tarea_realizada(id:int):
-
-        db = SessionLocal()
-        tarea = db.query(TareaDB).filter(TareaDB.id == id).first()
-        if not tarea:
-            db.close()
-            raise HTTPException(status_code=404, detail="Tarea no localizada")
-        
-        elif db.query(tarea.realizada) == True:
-            db.close()
-            raise HTTPException(status_code=400, detail="Tarea ya completada con anterioridad")
-
-        db.query(tarea.realizada) == True
-
-        return{
-            
-            "titulo": tarea.titulo,
-            "Contenido": tarea.contenido,
-            "Creada": tarea.creada,
-            "Realizada": tarea.realizada
-        }
-    
-    def comprobar_tareas_caducadas(fecha_actual:date):
-
-        db = SessionLocal()
-        tarea = db.query(TareaDB).filter(TareaDB.creada < fecha_actual).all()
-        if not tarea:
-            db.close()
-            raise HTTPException(status_code=404, detail="No hay tareas caducadas")
-        
-        for t in tarea:
-            t.realizadarealizada = True
-
-        db.commit()    
-        tareas_realizadas = db.query(TareaDB).filter(TareaDB.realizada == True).all()
-        db.close()
-
-        return [
-         {
-        "titulo": t.titulo,
-        "contenido": t.contenido,
-        "creada": t.creada,
-        "caducada": t.caducada
+            "id": self.__id,
+            "titulo": self.__titulo,
+            "contenido": self.__contenido,
+            "creada": self.__creada,
+            "realizada": self.__realizada,
+            "caducada": self.__caducada
          }
+    
+    def get_id(self): 
+        return self.__id
+    
+    def get_titulo(self):
+        return self.__titulo
+    
+    def set_titulo(self, valor: str): 
+        self.__titulo = valor
         
-        for t in tareas_realizadas
-]
+    def get_contenido(self):
+        return self.__contenido
+    
+    def set_contenido(self, valor: str): 
+        self.__contenido = valor
 
+    def get_creada(self):
+        return self.__creada
+    
+    def set_creada(self, valor: date): 
+        self.__creada = valor    
+    
+    def get_realizada(self): 
+        return self.__realizada
+    
+    def set_realizada(self, valor: bool): 
+        self.__realizada = valor
 
+    def get_caducada(self): 
+        return self.__caducada
 
+    def set_caducada(self, valor: bool): 
+        self.__caducada = valor
+
+    @classmethod
+    def crear_tarea(cls, titulo:str,contenido:int,creada:date,realizada:bool = False, caducada:bool = False): 
+
+        tarea = cls(titulo,contenido,creada,realizada,caducada)
+        return tarea.valores_tareas()
+
+    @classmethod
+    def listar_tareas(cls):
+
+        if not cls._dict_tareas:
+            raise HTTPException(status_code=404, detail="No hay tareas")
         
+        return [t.valores_tareas() for t in cls._dict_tareas.values()]
+  
+
+    @classmethod
+    def obtener_por_id(cls, id: int):
+
+        tarea = cls._dict_tareas.get(id)
+        if not tarea:
+            raise HTTPException(status_code=404, detail="Tarea no encontrada")
+        
+        return tarea.valores_tareas()
+    
+    @classmethod
+    def tarea_realizada(cls, id: int):
+
+        tarea = cls._dict_tareas.get(id)
+
+        if not tarea:
+            raise HTTPException(status_code=404, detail="Tarea no encontrada")
+        
+        if tarea.get_realizada():
+            raise HTTPException(status_code=400, detail="La tarea ya estaba completada")
+        
+        tarea.set_realizada(True)
+
+        return tarea.valores_tareas()
+    
+    @classmethod
+    def comprobar_caducadas(cls, fecha_actual: date):
+    
+        caducadas = []
+
+        for t in cls._dict_tareas.values():
+               
+            if t.get_creada() < fecha_actual:
+
+                t.set_caducada(True)  
+                caducadas.append(t)    
+
+        if not caducadas:
+            raise HTTPException(status_code=404, detail="No hay tareas caducadas")
+
+        return [t.valores_tareas() for t in caducadas] 
+        
+
+    
 
 
     

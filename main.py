@@ -16,17 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-Base.metadata.create_all(bind=engine)
-
-class CrearTarea(BaseModel):
-    id: Optional[int] = None
-    titulo: str = Field(..., min_length=5, description="Titulo de la tarea a realizar (minimo 5 caracteres)")
-    contenido: str = Field(..., description="Contenido de la tarea a realizar")
-    creada: date = Field(...,description="Fecha de la creacion de la tarea")
-    realizada: Optional[bool] = Field(default=False,description="Estado de la tarea") # Lo inicializo a falso para luego poder cambiarlo en BD con PUT una vez completada la tarea
-    caducada: Optional[bool] = Field(default=False,description="Estado si la tarea a caducado o no") # Lo inicializo a falso para luego comprobarlo con GET
-    
 # Creacion API
 
 app = FastAPI(
@@ -37,26 +26,22 @@ app = FastAPI(
 
 # EndPoints
 
+@app.post("/tasks/")
+def crear_tarea(datos: CrearTarea):
+    return Tarea.crear_tarea(datos.titulo, datos.contenido, datos.creada, datos.realizada, datos.caducada)
+
+@app.get("/tasks/all")
+def listar_tareas():
+    return Tarea.listar_tareas()
+
 @app.get("/tasks/{id}")
-def listar_tareas(id:int):
+def obtener_tarea(id: int):
+    return Tarea.obtener_por_id(id)
 
-    Tarea.obtener_tarea_id(id)
-    
-@app.get("/tasks/caducadas")
-def tareas_caducadas(fecha:date):
+@app.put("/tasks/{id}/realizada")
+def marcar_realizada(id: int):
+    return Tarea.tarea_realizada(id)
 
-    fecha = date.today()
-    Tarea.comprobar_tareas_caducadas(fecha)
-
-@app.put("/tasks/{id}/completada")
-def completar_tarea(tarea:CrearTarea,id:int):
-
-    Tarea.tarea_realizada(tarea,id)
-
-@app.post("/tasks/",status_code=status.HTTP_201_CREATED)
-def crear_tarea(tarea:CrearTarea):
-    
-    logging.info(f"Tarea procesada correctamente: {tarea}")
-    tarea_db = Tarea(titulo=tarea.titulo,contenido=tarea.contenido,creada=tarea.creada,realizada=tarea.realizada,caducada=tarea.caducada)
-    Tarea.crear_tarea(tarea_db)
-    
+@app.get("/tasks/caducadas/")
+def comprobar_caducadas():
+    return Tarea.comprobar_caducadas(date.today())
